@@ -16,6 +16,15 @@ LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai").lower()
 # Open-source embeddings (sentence-transformers, runs locally, no API key).
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 
+# Where the persisted FAISS index lives, so it is built once and reused.
+FAISS_INDEX_PATH = os.getenv("FAISS_INDEX_PATH", "faiss_index")
+
+# Documents ingested into the knowledge base.
+SOURCE_URLS = [
+    "https://lilianweng.github.io/posts/2023-06-23-agent/",
+    "https://lilianweng.github.io/posts/2023-03-15-prompt-engineering/",
+]
+
 if LLM_PROVIDER == "groq":
     if not GROQ_API_KEY:
         raise ValueError("GROQ_API_KEY must be set in .env file")

@@ -4,6 +4,8 @@ from .settings import (
     LLM_PROVIDER,
     GROQ_MODEL,
     EMBEDDING_MODEL,
+    FAISS_INDEX_PATH,
+    SOURCE_URLS,
 )
 from .openai import get_llm, get_openai_llm
 from .groq import get_groq_llm
@@ -15,6 +17,8 @@ __all__ = [
     "LLM_PROVIDER",
     "GROQ_MODEL",
     "EMBEDDING_MODEL",
+    "FAISS_INDEX_PATH",
+    "SOURCE_URLS",
     "get_llm",
     "get_openai_llm",
     "get_groq_llm",

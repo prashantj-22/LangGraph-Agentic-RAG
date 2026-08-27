@@ -11,3 +11,7 @@ build/
 .env
 .DS_Store
 *.log
+*.local
+
+# Persisted FAISS index (rebuild with: python -m src.build_db)
+faiss_index/

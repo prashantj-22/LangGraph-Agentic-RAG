@@ -30,12 +30,13 @@ src/
 │   ├── openai.py        # OpenAI client + get_llm() provider router
 │   ├── groq.py          # Groq client
 │   └── embeddings.py    # Local sentence-transformers embeddings
-├── retriever.py         # Document ingestion and FAISS vector store
+├── retriever.py         # Document ingestion, FAISS build/save/load, retriever tool
+├── build_db.py          # One-off CLI to build & persist the FAISS index
 ├── agents/
 │   ├── nodes.py         # Agent, rewrite, and generate functions
-│   ├── edges.py         # Document grading logic
+│   ├── edges.py         # Routing + document grading logic
 │   └── graph.py         # LangGraph state machine
-└── main.py              # Entry point
+└── main.py              # CLI entry point
 ```
 
 ## Setup Instructions
@@ -91,11 +92,27 @@ Embeddings default to `sentence-transformers/all-MiniLM-L6-v2` (local, 384-dim).
 Override with `EMBEDDING_MODEL=...` in `.env`. The model downloads from
 HuggingFace on first use.
 
-### 3. Run the System
+### 3. Build the Vector Store (once)
+
+The FAISS index is built once and persisted to `faiss_index/`, so it is not
+re-embedded on every run.
+
+```bash
+python -m src.build_db              # build if missing
+python -m src.build_db --rebuild    # force a fresh build (sources/model changed)
+```
+
+Configure with `FAISS_INDEX_PATH` in `.env` (default `faiss_index`). Source URLs
+live in `SOURCE_URLS` in [src/config/settings.py](src/config/settings.py).
+
+### 4. Run the System
 
 ```bash
 python -m src.main
 ```
+
+`src.main` loads the persisted index automatically, building it on first run if
+`faiss_index/` doesn't exist yet.
 
 ## How It Works
 

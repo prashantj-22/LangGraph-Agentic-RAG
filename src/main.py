@@ -1,21 +1,17 @@
 from langchain_core.messages import HumanMessage
-from .retriever import ingest_documents, get_retriever_tool
+from .config import FAISS_INDEX_PATH
+from .retriever import get_vectorstore, get_retriever_tool
 from .agents.graph import build_graph
 
 def main():
     print("🚀 Initializing Agentic RAG System...")
-    
-    urls = [
-        "https://lilianweng.github.io/posts/2023-06-23-agent/",
-        "https://lilianweng.github.io/posts/2023-03-15-prompt-engineering/"
-    ]
-    
-    print("\n📚 Ingesting documents into FAISS vector store...")
+
+    print(f"\n📚 Loading FAISS vector store ('{FAISS_INDEX_PATH}')...")
     try:
-        vectorstore = ingest_documents(urls)
-        print("✅ Documents ingested successfully!")
+        vectorstore = get_vectorstore()
+        print("✅ Vector store ready!")
     except Exception as e:
-        print(f"⚠️  Warning: Could not ingest documents: {e}")
+        print(f"⚠️  Warning: Could not load/build vector store: {e}")
         import traceback
         traceback.print_exc()
         return
