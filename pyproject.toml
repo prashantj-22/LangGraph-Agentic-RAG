@@ -16,6 +16,8 @@ dependencies = [
     "faiss-cpu",
     "beautifulsoup4",
     "streamlit",
+    "fastapi",
+    "uvicorn[standard]",
 ]
 
 [tool.hatch.build.targets.wheel]

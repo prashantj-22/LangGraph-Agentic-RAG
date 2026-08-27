@@ -346,5 +346,6 @@ cp .env.example .env                  # then fill GROQ_API_KEY
 python -m src.build_db                # build the FAISS index once
 python -m src.main                    # CLI: run the agent on the sample questions
 streamlit run streamlit_app.py       # UI: chat + per-node reasoning trace
+uvicorn api:app --reload             # REST API: /ask, /ask/stream, /docs
 python -m src.build_db --rebuild      # after changing sources / embedding model
 ```

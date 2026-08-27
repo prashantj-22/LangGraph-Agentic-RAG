@@ -25,7 +25,9 @@ The system consists of 6 key components:
 
 ```
 streamlit_app.py         # Streamlit chat UI
+api.py                    # FastAPI REST API
 src/
+├── service.py           # Shared runner: compile graph, stream steps, shape output
 ├── config/
 │   ├── settings.py      # Environment variables
 │   ├── openai.py        # OpenAI client + get_llm() provider router
@@ -123,6 +125,19 @@ streamlit run streamlit_app.py
 The UI gives you a chat box, an expandable reasoning trace for every graph node
 (agent / retrieve / rewrite / generate), a config panel, and a "Rebuild index"
 button in the sidebar.
+
+**REST API (FastAPI):**
+
+```bash
+uvicorn api:app --reload      # docs at http://127.0.0.1:8000/docs
+```
+
+| Method & path | Purpose |
+| --- | --- |
+| `GET /health` | provider/model/index status |
+| `POST /ask` | `{"question": "..."}` → `{answer, steps}` (full node trace) |
+| `POST /ask/stream` | same, streamed as Server-Sent Events (`step` events, then `answer`) |
+| `POST /rebuild-index` | rebuild the FAISS index from `SOURCE_URLS` |
 
 Both entry points load the persisted index automatically, building it on first
 run if `faiss_index/` doesn't exist yet.
