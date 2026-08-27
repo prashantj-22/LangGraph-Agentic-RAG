@@ -27,7 +27,8 @@ The system consists of 6 key components:
 src/
 ├── config/
 │   ├── settings.py      # Environment variables
-│   └── openai.py        # Model names and API clients
+│   ├── openai.py        # OpenAI client + get_llm() provider router
+│   └── groq.py          # Groq client
 ├── retriever.py         # Document ingestion and FAISS vector store
 ├── agents/
 │   ├── nodes.py         # Agent, rewrite, and generate functions
@@ -67,6 +68,19 @@ Your `.env` file should already contain:
 ```
 OPENAI_API_KEY=your_api_key_here
 ```
+
+#### Optional: use Groq for the LLM
+
+Groq offers fast inference with a generous free tier. Get a key at
+https://console.groq.com/keys and add to `.env`:
+```
+LLM_PROVIDER=groq
+GROQ_API_KEY=your_groq_api_key_here
+# optional override (default: openai/gpt-oss-20b)
+# check what your key can use: GET https://api.groq.com/openai/v1/models
+GROQ_MODEL=openai/gpt-oss-20b
+```
+To use Groq for a single call: `get_llm(provider="groq")`.
 
 ### 3. Run the System
 
