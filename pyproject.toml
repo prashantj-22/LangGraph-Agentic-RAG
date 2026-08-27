@@ -8,6 +8,8 @@ dependencies = [
     "langchain-openai",
     "langchain-community",
     "langchain-groq",
+    "langchain-huggingface",
+    "sentence-transformers",
     "langgraph",
     "python-dotenv",
     "tiktoken",

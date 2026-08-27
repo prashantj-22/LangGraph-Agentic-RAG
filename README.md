@@ -28,7 +28,8 @@ src/
 ├── config/
 │   ├── settings.py      # Environment variables
 │   ├── openai.py        # OpenAI client + get_llm() provider router
-│   └── groq.py          # Groq client
+│   ├── groq.py          # Groq client
+│   └── embeddings.py    # Local sentence-transformers embeddings
 ├── retriever.py         # Document ingestion and FAISS vector store
 ├── agents/
 │   ├── nodes.py         # Agent, rewrite, and generate functions
@@ -80,7 +81,15 @@ GROQ_API_KEY=your_groq_api_key_here
 # check what your key can use: GET https://api.groq.com/openai/v1/models
 GROQ_MODEL=openai/gpt-oss-20b
 ```
-To use Groq for a single call: `get_llm(provider="groq")`.
+Embeddings use an open-source `sentence-transformers` model that runs locally
+(no API key), so with `LLM_PROVIDER=groq` you don't need `OPENAI_API_KEY` at
+all. To use Groq for a single call: `get_llm(provider="groq")`.
+
+#### Embeddings
+
+Embeddings default to `sentence-transformers/all-MiniLM-L6-v2` (local, 384-dim).
+Override with `EMBEDDING_MODEL=...` in `.env`. The model downloads from
+HuggingFace on first use.
 
 ### 3. Run the System
 

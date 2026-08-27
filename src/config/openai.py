@@ -1,4 +1,4 @@
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import ChatOpenAI
 from .settings import OPENAI_API_KEY, GROQ_MODEL, LLM_PROVIDER
 from .groq import get_groq_llm
 
@@ -21,7 +21,3 @@ def get_llm(model_name: str | None = None, temperature: float = 0, provider: str
     if provider == "groq":
         return get_groq_llm(model_name or GROQ_MODEL, temperature)
     return get_openai_llm(model_name or "gpt-4o-mini", temperature)
-
-
-def get_embeddings():
-    return OpenAIEmbeddings(api_key=OPENAI_API_KEY)

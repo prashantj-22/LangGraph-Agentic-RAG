@@ -13,6 +13,9 @@ GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
 # Which provider get_llm() uses by default: "openai" or "groq"
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai").lower()
 
+# Open-source embeddings (sentence-transformers, runs locally, no API key).
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+
 if LLM_PROVIDER == "groq":
     if not GROQ_API_KEY:
         raise ValueError("GROQ_API_KEY must be set in .env file")

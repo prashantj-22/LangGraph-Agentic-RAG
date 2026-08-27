@@ -1,12 +1,20 @@
-from .settings import OPENAI_API_KEY, GROQ_API_KEY, LLM_PROVIDER, GROQ_MODEL
-from .openai import get_llm, get_openai_llm, get_embeddings
+from .settings import (
+    OPENAI_API_KEY,
+    GROQ_API_KEY,
+    LLM_PROVIDER,
+    GROQ_MODEL,
+    EMBEDDING_MODEL,
+)
+from .openai import get_llm, get_openai_llm
 from .groq import get_groq_llm
+from .embeddings import get_embeddings
 
 __all__ = [
     "OPENAI_API_KEY",
     "GROQ_API_KEY",
     "LLM_PROVIDER",
     "GROQ_MODEL",
+    "EMBEDDING_MODEL",
     "get_llm",
     "get_openai_llm",
     "get_groq_llm",
