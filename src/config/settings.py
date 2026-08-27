@@ -1,7 +1,13 @@
 import os
+from pathlib import Path
+
 from dotenv import load_dotenv
 
-load_dotenv()
+# Repo root = two levels up from this file (src/config/settings.py).
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+# Load the repo-root .env explicitly so it is found regardless of CWD.
+load_dotenv(PROJECT_ROOT / ".env")
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
@@ -17,7 +23,12 @@ LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai").lower()
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 
 # Where the persisted FAISS index lives, so it is built once and reused.
-FAISS_INDEX_PATH = os.getenv("FAISS_INDEX_PATH", "faiss_index")
+# A relative value is anchored to the repo root, not the current directory,
+# so the app works no matter where it is launched from.
+_faiss_path = Path(os.getenv("FAISS_INDEX_PATH", "faiss_index")).expanduser()
+if not _faiss_path.is_absolute():
+    _faiss_path = PROJECT_ROOT / _faiss_path
+FAISS_INDEX_PATH = str(_faiss_path)
 
 # Documents ingested into the knowledge base.
 SOURCE_URLS = [
