@@ -224,6 +224,10 @@ uv pip install -e . --force-reinstall
 
 Based on the article about building Agentic RAG systems with self-correcting retrieval capabilities using LangGraph and vector stores.
 
+For a step-by-step build walkthrough and a node-by-node explanation of the
+LangGraph workflow (with interview talking points), see
+[docs/INTERVIEW_GUIDE.md](docs/INTERVIEW_GUIDE.md).
+
 ## Contributing
 
 Feel free to submit issues and enhancement requests!
