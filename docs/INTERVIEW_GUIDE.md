@@ -344,6 +344,7 @@ thread between `invoke`/`stream` calls.
 uv venv && uv pip install -e .        # install
 cp .env.example .env                  # then fill GROQ_API_KEY
 python -m src.build_db                # build the FAISS index once
-python -m src.main                    # run the agent on the sample questions
+python -m src.main                    # CLI: run the agent on the sample questions
+streamlit run streamlit_app.py       # UI: chat + per-node reasoning trace
 python -m src.build_db --rebuild      # after changing sources / embedding model
 ```

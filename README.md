@@ -24,6 +24,7 @@ The system consists of 6 key components:
 ## Project Structure
 
 ```
+streamlit_app.py         # Streamlit chat UI
 src/
 ├── config/
 │   ├── settings.py      # Environment variables
@@ -107,12 +108,24 @@ live in `SOURCE_URLS` in [src/config/settings.py](src/config/settings.py).
 
 ### 4. Run the System
 
+**CLI:**
+
 ```bash
 python -m src.main
 ```
 
-`src.main` loads the persisted index automatically, building it on first run if
-`faiss_index/` doesn't exist yet.
+**Streamlit UI:**
+
+```bash
+streamlit run streamlit_app.py
+```
+
+The UI gives you a chat box, an expandable reasoning trace for every graph node
+(agent / retrieve / rewrite / generate), a config panel, and a "Rebuild index"
+button in the sidebar.
+
+Both entry points load the persisted index automatically, building it on first
+run if `faiss_index/` doesn't exist yet.
 
 ## How It Works
 
