@@ -42,7 +42,7 @@ Directory tree:
 src/
 ├── main.py                 # entry point: load index, run the graph on questions
 ├── build_db.py             # one-off script: build & persist the FAISS index
-├── retriever.py            # ingest URLs → FAISS; save/load; wrap as a retriever tool
+├── retriever.py            # load web + local files → FAISS; save/load; retriever tool
 ├── config/
 │   ├── settings.py         # env vars: provider, model, embedding model, paths, URLs
 │   ├── openai.py           # get_openai_llm() + get_llm() provider router
@@ -81,7 +81,8 @@ from `.env` via `settings.py`.
   - `OPENAI_API_KEY`
   - `EMBEDDING_MODEL` (default `sentence-transformers/all-MiniLM-L6-v2`)
   - `FAISS_INDEX_PATH` (default `faiss_index`)
-  - `SOURCE_URLS` — the documents to ingest
+  - `SOURCE_URLS` — web pages to ingest; `KB_DIR` / `SOURCE_PATHS` — local
+    `.pdf` / `.docx` / `.txt` / `.md` files to ingest
   - Validates that the key for the selected provider is present, and raises
     early with a clear message if not.
 
@@ -104,11 +105,15 @@ from `.env` via `settings.py`.
 
 ### Step 3 — Retrieval & vector store (`src/retriever.py`)
 
-- `build_vectorstore(urls)`:
-  1. `WebBaseLoader(urls).load()` — fetch and parse the pages (BeautifulSoup).
-  2. `RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)` —
+- `load_documents(urls, paths)`:
+  - `WebBaseLoader(urls).load()` — fetch and parse the web pages (BeautifulSoup).
+  - `load_file_documents(paths)` — walk `KB_DIR` (and any `--source` paths) and
+     load each file by extension: `.pdf` → `PyPDFLoader`, `.docx` →
+     `Docx2txtLoader`, `.txt`/`.md` → `TextLoader` (legacy `.doc` is skipped).
+- `build_vectorstore(urls, paths)` → `index_documents(docs)`:
+  1. `RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)` —
      split into overlapping chunks so a semantic unit isn't cut in half.
-  3. `FAISS.from_documents(splits, get_embeddings())` — embed every chunk and
+  2. `FAISS.from_documents(splits, get_embeddings())` — embed every chunk and
      put the vectors in an in-memory FAISS index.
 - `save_vectorstore()` / `load_vectorstore()` — `FAISS.save_local()` writes
   `index.faiss` + `index.pkl`; `load_local(..., allow_dangerous_deserialization=True)`

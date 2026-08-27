@@ -3,15 +3,21 @@
 Run this once (or whenever the sources / embedding model change) so the app
 can load the index instead of re-embedding on every start:
 
-    python -m src.build_db                # build if missing
-    python -m src.build_db --rebuild      # force a fresh build
-    python -m src.build_db --url URL ...  # override the source URLs
+    python -m src.build_db                   # build if missing
+    python -m src.build_db --rebuild         # force a fresh build
+    python -m src.build_db --url URL ...      # override the source URLs
+    python -m src.build_db --source PATH ...  # add extra files / directories
+    python -m src.build_db --no-urls          # local files only
+
+The knowledge base is: SOURCE_URLS + every .pdf / .docx / .txt / .md file
+under KB_DIR (the `knowledge_base/` directory by default), plus anything
+passed with --source.
 """
 import argparse
 import os
 
-from .config import FAISS_INDEX_PATH, SOURCE_URLS
-from .retriever import build_vectorstore, save_vectorstore
+from .config import FAISS_INDEX_PATH, SOURCE_PATHS, SOURCE_URLS
+from .retriever import index_documents, load_documents, save_vectorstore
 
 
 def main():
@@ -21,6 +27,15 @@ def main():
     )
     parser.add_argument(
         "--url", dest="urls", action="append", help="source URL (repeatable)"
+    )
+    parser.add_argument(
+        "--source",
+        dest="sources",
+        action="append",
+        help="extra file or directory to ingest (repeatable)",
+    )
+    parser.add_argument(
+        "--no-urls", action="store_true", help="skip SOURCE_URLS, index local files only"
     )
     parser.add_argument(
         "--rebuild",
@@ -33,12 +48,19 @@ def main():
         print(f"✅ Index already exists at '{args.path}'. Use --rebuild to overwrite.")
         return
 
-    urls = args.urls or SOURCE_URLS
-    print(f"📚 Building FAISS index from {len(urls)} source(s)...")
-    for u in urls:
-        print(f"   - {u}")
+    urls = [] if args.no_urls else (args.urls or SOURCE_URLS)
+    paths = list(SOURCE_PATHS) + list(args.sources or [])
 
-    vectorstore = build_vectorstore(urls)
+    print("📚 Building FAISS index from:")
+    for u in urls:
+        print(f"   url  {u}")
+    for p in paths:
+        print(f"   path {p}")
+
+    docs = load_documents(urls, paths)
+    print(f"→ loaded {len(docs)} document section(s); embedding & indexing...")
+
+    vectorstore = index_documents(docs)
     save_vectorstore(vectorstore, args.path)
     print(f"✅ Saved index to '{args.path}'.")
 

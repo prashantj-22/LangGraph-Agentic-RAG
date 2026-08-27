@@ -15,3 +15,9 @@ build/
 
 # Persisted FAISS index (rebuild with: python -m src.build_db)
 faiss_index/
+
+# Knowledge-base documents: index them locally, don't commit large binaries.
+# Delete these lines if you do want the corpus tracked in git.
+knowledge_base/*
+!knowledge_base/.gitkeep
+!knowledge_base/README.md

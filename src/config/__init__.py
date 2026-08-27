@@ -6,6 +6,8 @@ from .settings import (
     EMBEDDING_MODEL,
     FAISS_INDEX_PATH,
     SOURCE_URLS,
+    KB_DIR,
+    SOURCE_PATHS,
 )
 from .openai import get_llm, get_openai_llm
 from .groq import get_groq_llm
@@ -19,6 +21,8 @@ __all__ = [
     "EMBEDDING_MODEL",
     "FAISS_INDEX_PATH",
     "SOURCE_URLS",
+    "KB_DIR",
+    "SOURCE_PATHS",
     "get_llm",
     "get_openai_llm",
     "get_groq_llm",

@@ -30,11 +30,19 @@ if not _faiss_path.is_absolute():
     _faiss_path = PROJECT_ROOT / _faiss_path
 FAISS_INDEX_PATH = str(_faiss_path)
 
-# Documents ingested into the knowledge base.
+# Web pages ingested into the knowledge base.
 SOURCE_URLS = [
     "https://lilianweng.github.io/posts/2023-06-23-agent/",
     "https://lilianweng.github.io/posts/2023-03-15-prompt-engineering/",
 ]
+
+# Local documents ingested into the knowledge base: drop .pdf / .docx / .txt /
+# .md files into this directory (scanned recursively). Relative -> repo root.
+_kb_dir = Path(os.getenv("KB_DIR", "knowledge_base")).expanduser()
+if not _kb_dir.is_absolute():
+    _kb_dir = PROJECT_ROOT / _kb_dir
+KB_DIR = str(_kb_dir)
+SOURCE_PATHS = [KB_DIR]
 
 if LLM_PROVIDER == "groq":
     if not GROQ_API_KEY:

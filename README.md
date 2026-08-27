@@ -26,6 +26,7 @@ The system consists of 6 key components:
 ```
 streamlit_app.py         # Streamlit chat UI
 api.py                    # FastAPI REST API
+knowledge_base/           # drop .pdf / .docx / .txt / .md files here to index them
 src/
 ├── service.py           # Shared runner: compile graph, stream steps, shape output
 ├── config/
@@ -33,7 +34,7 @@ src/
 │   ├── openai.py        # OpenAI client + get_llm() provider router
 │   ├── groq.py          # Groq client
 │   └── embeddings.py    # Local sentence-transformers embeddings
-├── retriever.py         # Document ingestion, FAISS build/save/load, retriever tool
+├── retriever.py         # Loaders (web + files), FAISS build/save/load, retriever tool
 ├── build_db.py          # One-off CLI to build & persist the FAISS index
 ├── agents/
 │   ├── nodes.py         # Agent, rewrite, and generate functions
@@ -97,16 +98,22 @@ HuggingFace on first use.
 
 ### 3. Build the Vector Store (once)
 
-The FAISS index is built once and persisted to `faiss_index/`, so it is not
-re-embedded on every run.
+The knowledge base is **`SOURCE_URLS`** (web pages, in
+[src/config/settings.py](src/config/settings.py)) **plus every `.pdf` / `.docx`
+/ `.txt` / `.md` file under `knowledge_base/`** (recursive; change the folder
+with `KB_DIR`). The FAISS index is built once and persisted to `faiss_index/`,
+so it is not re-embedded on every run.
 
 ```bash
-python -m src.build_db              # build if missing
-python -m src.build_db --rebuild    # force a fresh build (sources/model changed)
+python -m src.build_db                    # build if missing
+python -m src.build_db --rebuild          # force a fresh build (sources/files/model changed)
+python -m src.build_db --source ./docs    # ingest an extra file or directory
+python -m src.build_db --no-urls          # local files only
 ```
 
-Configure with `FAISS_INDEX_PATH` in `.env` (default `faiss_index`). Source URLs
-live in `SOURCE_URLS` in [src/config/settings.py](src/config/settings.py).
+Add or change files under `knowledge_base/`, then re-run with `--rebuild`.
+Legacy `.doc` isn't supported — convert to `.docx`. Configure the index
+location with `FAISS_INDEX_PATH` (default `faiss_index`).
 
 ### 4. Run the System
 
