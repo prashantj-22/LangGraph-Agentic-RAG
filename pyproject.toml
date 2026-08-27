@@ -18,6 +18,7 @@ dependencies = [
     "streamlit",
     "fastapi",
     "uvicorn[standard]",
+    "httpx",
 ]
 
 [tool.hatch.build.targets.wheel]

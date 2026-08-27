@@ -1,27 +1,27 @@
 """Streamlit UI for the Agentic RAG system.
 
-Run from the repo root:
+This is a thin client over the FastAPI service (`api.py`). Start the API first:
+
+    uvicorn api:app --reload
+
+then, in another shell:
 
     streamlit run streamlit_app.py
+
+Point it at a different backend with the API_BASE_URL env var.
 """
+import json
 import os
 
+import httpx
 import streamlit as st
-from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+from dotenv import load_dotenv
 
-from src.config import (
-    EMBEDDING_MODEL,
-    FAISS_INDEX_PATH,
-    GROQ_MODEL,
-    LLM_PROVIDER,
-    SOURCE_URLS,
-)
-from src.retriever import get_vectorstore, get_retriever_tool
-from src.agents.graph import build_graph
+load_dotenv()
+
+API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
 
 st.set_page_config(page_title="Agentic RAG", page_icon="🤖", layout="wide")
-
-MODEL_NAME = GROQ_MODEL if LLM_PROVIDER == "groq" else "gpt-4o-mini"
 
 # Node -> how to label it in the reasoning trace.
 NODE_LABELS = {
@@ -33,55 +33,87 @@ NODE_LABELS = {
 
 
 # --------------------------------------------------------------------------- #
-# Cached resources
+# API client
 # --------------------------------------------------------------------------- #
-@st.cache_resource(show_spinner="Loading / building the FAISS index…")
-def load_app(_rebuild_token: int = 0):
-    """Build the retriever tool + compiled LangGraph app.
-
-    `_rebuild_token` is bumped to bust the cache when the user rebuilds.
-    """
-    vectorstore = get_vectorstore(rebuild=_rebuild_token > 0)
-    tools = [get_retriever_tool(vectorstore)]
-    return build_graph(tools)
+class APIError(Exception):
+    pass
 
 
-def render_step(node: str, value: dict):
-    """Render one node's output from the graph stream."""
+def api_get(path: str, timeout: float = 10.0) -> dict:
+    try:
+        r = httpx.get(f"{API_BASE_URL}{path}", timeout=timeout)
+        r.raise_for_status()
+        return r.json()
+    except httpx.HTTPError as exc:
+        raise APIError(str(exc)) from exc
+
+
+def api_post(path: str, body: dict | None = None, timeout: float = 300.0) -> dict:
+    try:
+        r = httpx.post(f"{API_BASE_URL}{path}", json=body, timeout=timeout)
+        r.raise_for_status()
+        return r.json()
+    except httpx.HTTPError as exc:
+        raise APIError(str(exc)) from exc
+
+
+def stream_ask(question: str):
+    """Yield (event, payload) tuples from the /ask/stream SSE endpoint."""
+    try:
+        with httpx.stream(
+            "POST",
+            f"{API_BASE_URL}/ask/stream",
+            json={"question": question},
+            timeout=300.0,
+        ) as r:
+            r.raise_for_status()
+            event = "message"
+            for line in r.iter_lines():
+                if not line:
+                    event = "message"
+                    continue
+                if line.startswith("event:"):
+                    event = line.split(":", 1)[1].strip()
+                elif line.startswith("data:"):
+                    yield event, json.loads(line.split(":", 1)[1].strip())
+    except httpx.HTTPError as exc:
+        raise APIError(str(exc)) from exc
+
+
+# --------------------------------------------------------------------------- #
+# Rendering
+# --------------------------------------------------------------------------- #
+def render_step(step: dict):
+    node = step.get("node", "?")
     label = NODE_LABELS.get(node, f"🔹 {node}")
-    msgs = value.get("messages", []) if isinstance(value, dict) else []
-    last = msgs[-1] if msgs else None
-
     with st.expander(label, expanded=False):
-        if isinstance(last, AIMessage) and last.tool_calls:
-            for tc in last.tool_calls:
+        kind = step.get("type")
+        if kind == "tool_call":
+            for tc in step.get("tool_calls", []):
                 st.markdown(f"**Tool call:** `{tc['name']}`")
                 st.json(tc["args"])
-        elif isinstance(last, ToolMessage):
+        elif kind == "documents":
             st.markdown("**Retrieved documents:**")
-            st.text((last.content or "")[:2000])
-        elif isinstance(last, HumanMessage):
-            st.markdown(f"**Rewritten query:** {last.content}")
-        elif isinstance(last, AIMessage):
-            st.markdown(last.content or "_(no content)_")
+            st.text(step.get("content", "")[:2000])
+        elif kind == "rewrite":
+            st.markdown(f"**Rewritten query:** {step.get('query', '')}")
+        elif kind == "message":
+            st.markdown(step.get("content") or "_(no content)_")
         else:
-            st.write(value)
+            st.json(step)
 
 
-def run_query(app, question: str) -> str:
-    """Stream the graph, render each step, return the final answer text."""
-    inputs = {"messages": [HumanMessage(content=question)]}
+def run_query(question: str) -> str:
     final_answer = ""
-
     steps_box = st.container()
-    for output in app.stream(inputs):
-        for node, value in output.items():
+    for event, payload in stream_ask(question):
+        if event == "step":
             with steps_box:
-                render_step(node, value)
-            msgs = value.get("messages", []) if isinstance(value, dict) else []
-            if msgs and isinstance(msgs[-1], AIMessage) and msgs[-1].content:
-                final_answer = msgs[-1].content
-
+                render_step(payload)
+        elif event == "answer":
+            final_answer = payload.get("answer", "")
+        elif event == "error":
+            st.error(f"API error: {payload.get('detail', 'unknown')}")
     return final_answer or "_No answer produced._"
 
 
@@ -89,32 +121,41 @@ def run_query(app, question: str) -> str:
 # Sidebar
 # --------------------------------------------------------------------------- #
 with st.sidebar:
-    st.header("⚙️ Configuration")
+    st.header("⚙️ Backend")
+    st.caption(f"API: `{API_BASE_URL}`")
+
+    try:
+        health = api_get("/health")
+    except APIError as exc:
+        st.error(
+            f"Can't reach the API at `{API_BASE_URL}`.\n\n"
+            f"Start it with `uvicorn api:app --reload`.\n\n`{exc}`"
+        )
+        st.stop()
+
+    st.success("Connected")
     st.markdown(
         f"""
 | Setting | Value |
 | --- | --- |
-| LLM provider | `{LLM_PROVIDER}` |
-| Chat model | `{MODEL_NAME}` |
-| Embeddings | `{EMBEDDING_MODEL}` |
-| Index path | `{FAISS_INDEX_PATH}` |
-| Index built | `{os.path.isdir(FAISS_INDEX_PATH)}` |
+| LLM provider | `{health.get('provider')}` |
+| Chat model | `{health.get('model')}` |
+| Embeddings | `{health.get('embeddings')}` |
+| Index built | `{health.get('index_built')}` |
 """
     )
 
     st.subheader("📄 Knowledge base")
-    for url in SOURCE_URLS:
+    for url in health.get("sources", []):
         st.markdown(f"- [{url}]({url})")
 
-    if "rebuild_token" not in st.session_state:
-        st.session_state.rebuild_token = 0
-
     if st.button("🔄 Rebuild index", use_container_width=True):
-        st.session_state.rebuild_token += 1
-        load_app.clear()
-        get_vectorstore(rebuild=True)
-        st.success("Index rebuilt.")
-        st.rerun()
+        with st.spinner("Rebuilding index via API…"):
+            try:
+                api_post("/rebuild-index", timeout=600.0)
+                st.success("Index rebuilt.")
+            except APIError as exc:
+                st.error(f"Rebuild failed: {exc}")
 
     st.caption(
         "Each question is answered independently — the graph has no "
@@ -128,15 +169,13 @@ with st.sidebar:
 st.title("🤖 Agentic RAG with LangGraph")
 st.caption(
     "The agent decides whether to retrieve, grades the retrieved documents, "
-    "and rewrites the query to try again when they are weak."
+    "and rewrites the query to try again when they are weak. "
+    "This UI talks to the FastAPI backend over HTTP."
 )
-
-app = load_app(st.session_state.get("rebuild_token", 0))
 
 if "history" not in st.session_state:
     st.session_state.history = []  # list of (question, answer)
 
-# Replay prior turns.
 for q, a in st.session_state.history:
     with st.chat_message("user"):
         st.markdown(q)
@@ -151,8 +190,12 @@ if question:
         st.markdown(question)
 
     with st.chat_message("assistant"):
-        with st.status("Running the graph…", expanded=True):
-            answer = run_query(app, question)
+        with st.status("Running the graph via the API…", expanded=True):
+            try:
+                answer = run_query(question)
+            except APIError as exc:
+                st.error(f"Request failed: {exc}")
+                answer = "_Request failed._"
         st.markdown("### Answer")
         st.markdown(answer)
 

@@ -110,21 +110,11 @@ live in `SOURCE_URLS` in [src/config/settings.py](src/config/settings.py).
 
 ### 4. Run the System
 
-**CLI:**
+**CLI** — runs the graph in-process:
 
 ```bash
 python -m src.main
 ```
-
-**Streamlit UI:**
-
-```bash
-streamlit run streamlit_app.py
-```
-
-The UI gives you a chat box, an expandable reasoning trace for every graph node
-(agent / retrieve / rewrite / generate), a config panel, and a "Rebuild index"
-button in the sidebar.
 
 **REST API (FastAPI):**
 
@@ -134,13 +124,26 @@ uvicorn api:app --reload      # docs at http://127.0.0.1:8000/docs
 
 | Method & path | Purpose |
 | --- | --- |
+| `GET /` | endpoint index |
 | `GET /health` | provider/model/index status |
 | `POST /ask` | `{"question": "..."}` → `{answer, steps}` (full node trace) |
 | `POST /ask/stream` | same, streamed as Server-Sent Events (`step` events, then `answer`) |
 | `POST /rebuild-index` | rebuild the FAISS index from `SOURCE_URLS` |
 
-Both entry points load the persisted index automatically, building it on first
-run if `faiss_index/` doesn't exist yet.
+The API loads the persisted index automatically, building it on first run if
+`faiss_index/` doesn't exist yet.
+
+**Streamlit UI** — a thin client over the API, so start `uvicorn` first:
+
+```bash
+uvicorn api:app --reload          # terminal 1
+streamlit run streamlit_app.py    # terminal 2
+```
+
+It gives you a chat box, a per-node reasoning trace streamed from
+`/ask/stream`, a status panel fed by `/health`, and a "Rebuild index" button
+that calls `/rebuild-index`. Point it at another backend with `API_BASE_URL`
+(default `http://127.0.0.1:8000`).
 
 ## How It Works
 

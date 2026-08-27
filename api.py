@@ -79,6 +79,21 @@ app = FastAPI(
 )
 
 
+@app.get("/", include_in_schema=False)
+def root():
+    """Landing route — point callers at the docs and list the endpoints."""
+    return {
+        "name": "Agentic RAG API",
+        "docs": "/docs",
+        "endpoints": {
+            "GET /health": "provider / model / index status",
+            "POST /ask": '{"question": "..."} -> {answer, steps}',
+            "POST /ask/stream": "same, as Server-Sent Events",
+            "POST /rebuild-index": "rebuild the FAISS index",
+        },
+    }
+
+
 @app.get("/health", response_model=HealthResponse)
 def health():
     return {
